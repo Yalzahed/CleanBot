@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Copyright (C) 2020 CrossWing Inc. All rights reserved. -->
+<!-- Do not copy or distribute without authorization.       -->
+
+<!--
+  Model of the Sentry variant of Bishop.
+
+  Author: Helio Perroni Filho
+-->
+
+<robot name="$(arg name)" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:include filename="$(find bishop_ros)/urdf/marauder.xacro"/>
+  <xacro:include filename="$(find bishop_ros)/urdf/screen.xacro"/>
+
+  <xacro:screen x="0.22" z="0.93"/>
+</robot>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Copyright (C) 2020 CrossWing Inc. All rights reserved. -->
+<!-- Do not copy or distribute without authorization.       -->
+
+<!--
+  Model for a 2D LiDAR.
+
+  Author: Helio Perroni Filho
+-->
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!--
+    Make sure the line below is <include>'d before this file.
+
+    It's not <include>'d here to avoid re-including the same file multipe times.
+
+    <xacro:include filename="$(find crosswing_ros)/urdf/domain.xacro"/>
+  -->
+
+  <!-- Create a 2D LiDAR link. -->
+  <xacro:macro
+    name="lidar_2d"
+    params="
+      name
+      parent
+      topic:=/scan
+      x:=0.0
+      y:=0.0
+      z:=0.0
+      roll:=0.0
+      pitch:=0.0
+      yaw:=0.0
+      visualize:=false
+      update_rate:=40
+      samples:=1440
+      scan_resolution:=1
+      min_angle:=-3.14
+      max_angle:=3.14
+      range_min:=0.01
+      range_max:=40.0
+      range_resolution:=0.01
+      noise_mean:=0.0
+      noise_stddev:=0.0
+    "
+  >
+    <link name="${name}"/>
+
+    <xacro:joint_fixed
+      parent="${parent}"
+      child="${name}"
+      x="${x}"
+      y="${y}"
+      z="${z}"
+      roll="${roll}"
+      pitch="${pitch}"
+      yaw="${yaw}"
+    />
+
+    <xacro:if value="$(arg simulation)">
+      <gazebo reference="${name}">
+        <sensor type="ray" name="gazebo_ros_${name}">
+          <pose>0 0 0 0 0 0</pose>
+          <visualize>${visualize}</visualize>
+          <update_rate>${update_rate}</update_rate>
+          <ray>
+            <scan>
+              <horizontal>
+                <samples>${samples}</samples>
+                <resolution>${scan_resolution}</resolution>
+                <min_angle>${min_angle}</min_angle>
+                <max_angle>${max_angle}</max_angle>
+              </horizontal>
+            </scan>
+            <range>
+              <min>${range_min}</min>
+              <max>${range_max}</max>
+              <resolution>${range_resolution}</resolution>
+            </range>
+            <noise>
+              <type>gaussian</type>
+              <mean>${noise_mean}</mean>
+              <stddev>${noise_stddev}</stddev>
+            </noise>
+          </ray>
+          <plugin name="gazebo_ros_${name}_plugin" filename="libgazebo_ros_laser.so">
+            <topicName>${topic}</topicName>
+            <frameName>${name}</frameName>
+          </plugin>
+        </sensor>
+      </gazebo>
+    </xacro:if>
+  </xacro:macro>
+</robot>

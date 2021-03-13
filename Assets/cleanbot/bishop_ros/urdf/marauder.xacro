@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Copyright (C) 2020 CrossWing Inc. All rights reserved. -->
+<!-- Do not copy or distribute without authorization.       -->
+
+<!--
+  Model of the Marauder variant of Bishop.
+
+  Author: Helio Perroni Filho
+-->
+
+<robot name="$(arg name)" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:include filename="$(find bishop_ros)/urdf/bishop.xacro"/>
+  <xacro:include filename="$(find crosswing_ros)/urdf/camera_rgbd.xacro"/>
+  <xacro:include filename="$(find crosswing_ros)/urdf/lidar_1d.xacro"/>
+
+  <xacro:property name="fov_h" value="${86.0*DEG}"/>
+  <xacro:property name="cameras_height" value="0.13"/>
+
+  <!-- Reference frame for the virtual laser scan. -->
+  <link name="laser"/>
+  <xacro:joint_fixed parent="head" child="laser" z="${cameras_height}"/>
+
+  <xacro:camera_rgbd name="front" parent="head" horizontal_fov="${fov_h}" x="${head_radius}"  z="${cameras_height}"/>
+  <xacro:camera_rgbd name="back"  parent="head" horizontal_fov="${fov_h}" x="${-head_radius}" z="${cameras_height}" yaw="${M_PI}"/>
+
+  <xacro:camera_rgbd name="left"  parent="head" horizontal_fov="${fov_h}" y="${head_radius}"  z="${cameras_height}" yaw="${M_PI_2}"/>
+  <xacro:camera_rgbd name="right" parent="head" horizontal_fov="${fov_h}" y="${-head_radius}" z="${cameras_height}" yaw="${-M_PI_2}"/>
+
+  <xacro:property name="tof_visualize" value="false"/>
+  <xacro:property name="tof_head_height" value="-0.04"/>
+  <xacro:property name="tof_head_radius" value="${head_radius - 0.04}"/>
+  <xacro:property name="tof_head_pitch" value="${35.75*DEG}"/>
+  <xacro:property name="tof_head_yaw_0" value="${15.0*DEG}"/>
+  <xacro:property name="tof_head_yaw_step" value="${30.0*DEG}"/>
+
+  <xacro:macro
+    name="tof_head"
+    params="
+      name
+      yaw
+    "
+  >
+    <xacro:lidar_1d name="${name}"
+      parent="head"
+      x="${tof_head_radius * cos(yaw)}"
+      y="${tof_head_radius * sin(yaw)}"
+      z="${tof_head_height}"
+      pitch="${tof_head_pitch}"
+      yaw="${yaw}"
+      visualize="${tof_visualize}"
+    />
+  </xacro:macro>
+
+  <xacro:macro
+    name="tof_head_array"
+    params="
+      side
+      direction
+      index:=0
+    "
+  >
+    <xacro:tof_head name="tof_head_${side}_${index}"
+      yaw="${direction * (tof_head_yaw_0 + index * tof_head_yaw_step)}"
+    />
+    <xacro:if value="${index != 5}">
+      <xacro:tof_head_array side="${side}" direction="${direction}" index="${index + 1}"/>
+    </xacro:if>
+  </xacro:macro>
+
+  <xacro:tof_head_array side="left"  direction="1.0"/>
+  <xacro:tof_head_array side="right" direction="-1.0"/>
+
+  <xacro:property name="tof_base_height" value="0.36"/>
+  <xacro:property name="tof_base_pitch" value="${26.57*DEG}"/>
+  <xacro:property name="tof_base_array_yaw" value="${120.0*DEG}"/>
+  <xacro:property name="tof_thruster_height" value="0.04"/>
+  <xacro:property name="tof_thruster_radius" value="${mobile_base_radius + 0.057}"/>
+  <xacro:property name="tof_thruster_yaw" value="${60.0*DEG}"/>
+  <xacro:property name="tof_thruster_side_yaw" value="${57.54*DEG}"/> <!-- Converted from 62.46d to the reference frame between thrusters. -->
+
+  <!-- Set the minimal range value to beyond the robot's border to avoid collisions with internal structures. -->
+  <xacro:property name="tof_thruster_side_range_min" value="0.05"/>
+
+  <xacro:macro
+    name="tof_base_array"
+    params="
+      name
+      yaw:=0.0
+    "
+  >
+    <link name="${name}"/>
+
+    <xacro:joint_fixed
+      parent="body"
+      child="${name}"
+      z="${tof_base_height}"
+      yaw="${yaw}"
+    />
+
+    <xacro:lidar_1d name="${name}_left"
+      parent="${name}"
+      x="${tof_thruster_radius * cos(tof_thruster_yaw)}"
+      y="${tof_thruster_radius * sin(tof_thruster_yaw)}"
+      z="${tof_thruster_height}"
+      pitch="${tof_base_pitch}"
+      yaw="${-tof_thruster_side_yaw}"
+      visualize="${tof_visualize}"
+      range_min="${tof_thruster_side_range_min}"
+    />
+
+    <xacro:lidar_1d name="${name}_center"
+      parent="${name}"
+      x="${mobile_base_radius}"
+      pitch="${tof_base_pitch}"
+      visualize="${tof_visualize}"
+    />
+
+    <xacro:lidar_1d name="${name}_right"
+      parent="${name}"
+      x="${tof_thruster_radius * cos(-tof_thruster_yaw)}"
+      y="${tof_thruster_radius * sin(-tof_thruster_yaw)}"
+      z="${tof_thruster_height}"
+      pitch="${tof_base_pitch}"
+      yaw="${tof_thruster_side_yaw}"
+      visualize="${tof_visualize}"
+      range_min="${tof_thruster_side_range_min}"
+    />
+  </xacro:macro>
+
+  <xacro:tof_base_array name="tof_base_front"/>
+
+  <xacro:tof_base_array name="tof_base_left"
+    yaw="${tof_base_array_yaw}"
+  />
+
+  <xacro:tof_base_array name="tof_base_right"
+    yaw="${-tof_base_array_yaw}"
+  />
+</robot>

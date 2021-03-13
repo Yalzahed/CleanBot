@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Copyright (C) 2020 CrossWing Inc. All rights reserved. -->
+<!-- Do not copy or distribute without authorization.       -->
+
+<!--
+  Model of the Cleanbot variant of Bishop.
+
+  Author: Helio Perroni Filho
+-->
+
+<robot name="$(arg name)" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:include filename="$(find bishop_ros)/urdf/marauder.xacro"/>
+  <xacro:include filename="$(find bishop_ros)/urdf/uv_light.xacro"/>
+
+  <xacro:property name="uv_light_yaw" value="${60.0*DEG}"/>
+
+  <xacro:uv_light
+    name="light_left"
+    parent="mobile_base"
+    x="${thrusters_radius * cos(uv_light_yaw)}"
+    y="${thrusters_radius * sin(uv_light_yaw)}"
+    z="0.25"
+    yaw="${uv_light_yaw}"
+  />
+
+  <xacro:uv_light
+    name="light_back"
+    parent="mobile_base"
+    x="${-thrusters_radius}"
+    z="0.25"
+    yaw="${M_PI}"
+  />
+
+  <xacro:uv_light
+    name="light_right"
+    parent="mobile_base"
+    x="${thrusters_radius * cos(-uv_light_yaw)}"
+    y="${thrusters_radius * sin(-uv_light_yaw)}"
+    z="0.25"
+    yaw="${-uv_light_yaw}"
+  />
+
+  <xacro:if value="$(arg simulation)">
+    <gazebo>
+      <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+        <robotNamespace>/$(arg name)</robotNamespace>
+      </plugin>
+    </gazebo>
+  </xacro:if>
+</robot>

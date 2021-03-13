@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Copyright (C) 2020 CrossWing Inc. All rights reserved. -->
+<!-- Do not copy or distribute without authorization.       -->
+
+<!--
+  Model of a computer screen.
+
+  Author: Helio Perroni Filho
+-->
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!-- Create a screen of given parameters. -->
+  <xacro:macro
+    name="screen"
+    params="
+      name:=screen
+      parent:=body
+      x:=0.0
+      y:=0.0
+      z:=0.0
+      roll:=0.0
+      pitch:=0.0
+      yaw:=0.0
+      material_uri:='model://lana/materials/scripts/lana.material'
+      material_name:='CrossWing/Lana'
+    "
+  >
+    <!-- Monitor screen placed on top of the robot. -->
+    <xacro:solid_block
+      name="${name}"
+      z="0.185"
+      size_x="0.01"
+      size_y="0.23"
+      size_z="0.37"
+    />
+    <xacro:solid_block
+      name="${name}_back"
+      x="-0.005"
+      z="0.185"
+      size_x="0.01"
+      size_y="0.23"
+      size_z="0.37"
+    />
+    <xacro:solid_block
+      name="${name}_frame_top"
+      size_x="0.02"
+      size_y="0.27"
+      size_z="0.02"
+    />
+    <xacro:solid_block
+      name="${name}_frame_bottom"
+      z="-0.01"
+      size_x="0.02"
+      size_y="0.27"
+      size_z="0.02"
+    />
+    <xacro:solid_block
+      name="${name}_frame_left"
+      y="-0.125"
+      z="0.185"
+      size_x="0.02"
+      size_y="0.02"
+      size_z="0.37"
+    />
+    <xacro:solid_block
+      name="${name}_frame_right"
+      y="0.125"
+      z="0.185"
+      size_x="0.02"
+      size_y="0.02"
+      size_z="0.37"
+    />
+
+    <xacro:joint_fixed
+      parent="${parent}"
+      child="${name}"
+      x="${x}"
+      y="${y}"
+      z="${z}"
+      roll="${roll}"
+      pitch="${pitch}"
+      yaw="${yaw}"
+    />
+
+
+    <xacro:joint_fixed parent="${name}" child="${name}_back"/>
+    <xacro:joint_fixed parent="${name}" child="${name}_frame_top" z="0.38"/>
+    <xacro:joint_fixed parent="${name}" child="${name}_frame_bottom"/>
+    <xacro:joint_fixed parent="${name}" child="${name}_frame_left"/>
+    <xacro:joint_fixed parent="${name}" child="${name}_frame_right"/>
+
+    <xacro:if value="$(arg simulation)">
+      <gazebo reference="${name}">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>1 0 0</normal>
+              <size>0.23 0.37</size>
+            </plane>
+          </geometry>
+          <material>
+            <script>
+              <uri>${material_uri}</uri>
+              <name>${material_name}</name>
+            </script>
+          </material>
+        </visual>
+      </gazebo>
+    </xacro:if>
+  </xacro:macro>
+</robot>

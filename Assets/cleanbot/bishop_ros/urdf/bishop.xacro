@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Copyright (C) 2020 CrossWing Inc. All rights reserved. -->
+<!-- Do not copy or distribute without authorization.       -->
+
+<!--
+  Model of the Bishop robot.
+
+  Author: Helio Perroni Filho
+-->
+
+<robot name="$(arg name)" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:include filename="$(find crosswing_ros)/urdf/domain.xacro"/>
+
+  <!-- Link for a coordinate frame on the floor. -->
+  <link name="base_link"/>
+
+  <!-- Set visibility of the robot mesh and primitive solids, used for development purposes. -->
+  <xacro:property name="mesh_visible" value="true"/>
+  <xacro:property name="solids_visible" value="false"/>
+
+  <!--
+    The robot's main body.
+
+    This link only provides the body's appearance; its physics are modeled through
+    the mobile_base, lower_body and upper_body links.
+  -->
+  <xacro:solid_mesh
+    name="body"
+    filename="file://$(find bishop_ros)/urdf/bishop.stl"
+    material="White"
+    z="0.45"
+    visible="${mesh_visible}"
+  >
+    <inertia/>
+  </xacro:solid_mesh>
+
+  <!-- The mobile base contains the wheels and motors that move the robot around. -->
+  <xacro:property name="mobile_base_radius" value="0.271"/>
+  <xacro:property name="mobile_base_height" value="0.5"/>
+  <xacro:solid_cylinder
+    name="mobile_base"
+    z="${0.5 * mobile_base_height}"
+    radius="${mobile_base_radius}"
+    length="${mobile_base_height}"
+    material="Black"
+    mass="90.0"
+  />
+
+  <!-- The radius of the mobile base including the thrusters, kept here for reference by other models. -->
+  <xacro:property name="thrusters_radius" value="0.33"/>
+
+  <!-- The lower body is the bulging section connecting the mobile base to the tower-like upper body. -->
+  <xacro:property name="lower_body_radius" value="${mobile_base_radius}"/>
+  <xacro:solid_sphere
+    name="lower_body"
+    radius="${lower_body_radius}"
+    mass="0.1"
+    visible="${solids_visible}"
+  />
+
+  <!-- The upper body provides structural support for sensors and other components. -->
+  <xacro:property name="upper_body_radius" value="0.12"/>
+  <xacro:property name="upper_body_height" value="1.1"/>
+  <xacro:solid_cylinder
+    name="upper_body"
+    z="${0.5 * upper_body_height}"
+    radius="${upper_body_radius}"
+    length="${upper_body_height}"
+    mass="20.0"
+    visible="${solids_visible}"
+  />
+
+  <!-- The head contains vision sensors and the bulk of computing resources. -->
+  <xacro:property name="head_height" value="${mobile_base_height + upper_body_height - 0.3}"/>
+  <xacro:property name="head_radius" value="0.2"/>
+  <xacro:property name="head_length" value="0.2"/>
+  <xacro:solid_cylinder
+    name="head"
+    z="${0.5 * head_length}"
+    radius="${head_radius}"
+    length="${head_length}"
+    material="Black"
+    mass="0.01"
+  />
+
+  <xacro:joint_fixed parent="base_link" child="body"/>
+  <xacro:joint_fixed parent="body" child="mobile_base"/>
+  <xacro:joint_fixed parent="body" child="lower_body" z="${mobile_base_height}"/>
+  <xacro:joint_fixed parent="body" child="upper_body" z="${mobile_base_height}"/>
+  <xacro:joint_fixed parent="body" child="head" z="${head_height}"/>
+
+  <xacro:if value="$(arg simulation)">
+    <gazebo>
+      <plugin name="object_controller" filename="libgazebo_ros_planar_move.so">
+        <commandTopic>cmd_vel</commandTopic>
+        <odometryTopic>odom</odometryTopic>
+        <odometryFrame>odom</odometryFrame>
+        <odometryRate>50.0</odometryRate>
+        <robotBaseFrame>base_link</robotBaseFrame>
+      </plugin>
+    </gazebo>
+    <gazebo reference="mobile_base">
+      <mu1>0.001</mu1>
+      <mu2>0.001</mu2>
+    </gazebo>
+  </xacro:if>
+</robot>

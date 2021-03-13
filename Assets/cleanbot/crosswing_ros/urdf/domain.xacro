@@ -1,0 +1,442 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Copyright (C) 2020 CrossWing Inc. All rights reserved. -->
+<!-- Do not copy or distribute without authorization.       -->
+
+<!--
+  Model primitives.
+
+  Author: Helio Perroni Filho
+-->
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!-- Whether the system is running in Gazebo. -->
+  <xacro:arg name="simulation" default="true"/>
+
+  <!-- Predefined constants. -->
+  <xacro:property name="M_PI" value="${pi}"/>
+  <xacro:property name="M_PI_2" value="${0.5 * M_PI}"/>
+  <xacro:property name="DEG" value="${M_PI / 180.0}"/>
+
+  <!-- Default density for computing object mass based on volume. -->
+  <xacro:property name="DENSITY" value="200.0"/>
+
+  <!-- Pre-defined material colors. -->
+  <material name="Black">
+    <color rgba="0.0 0.0 0.0 1.0"/>
+  </material>
+  <material name="White">
+    <color rgba="1.0 1.0 1.0 1.0"/>
+  </material>
+  <material name="Grey">
+    <color rgba="0.3 0.3 0.3 1.0"/>
+  </material>
+  <material name="DarkGrey">
+    <color rgba="0.175 0.175 0.175 1.0"/>
+  </material>
+
+  <!-- Compute the inertial tensor of a block. -->
+  <xacro:macro
+    name="inertia_block"
+    params="
+      mass
+      size_x
+      size_y
+      size_z
+    "
+  >
+    <inertia
+      ixx="${mass * (size_z ** 2.0 + size_y ** 2.0) / 12.0}" ixy="0.0"  ixz="0.0"
+      iyy="${mass * (size_x ** 2.0 + size_z ** 2.0) / 12.0}" iyz="0.0"
+      izz="${mass * (size_x ** 2.0 + size_y ** 2.0) / 12.0}"
+    />
+  </xacro:macro>
+
+  <!-- Compute the inertial tensor of a cylinder. -->
+  <xacro:macro
+    name="inertia_cylinder"
+    params="
+      mass
+      radius
+      length
+    "
+  >
+    <inertia
+      ixx="${mass * (3.0 * radius ** 2.0 + length ** 2.0) / 12.0}" ixy="0.0"  ixz="0.0"
+      iyy="${mass * (3.0 * radius ** 2.0 + length ** 2.0) / 12.0}" iyz="0.0"
+      izz="${0.5 * mass * radius ** 2.0}"
+    />
+  </xacro:macro>
+
+  <!-- Compute the inertial tensor of a sphere. -->
+  <xacro:macro
+    name="inertia_sphere"
+    params="
+      mass
+      radius
+    "
+  >
+    <inertia
+      ixx="${0.4 * mass * radius ** 2.0}" ixy="0.0"  ixz="0.0"
+      iyy="${0.4 * mass * radius ** 2.0}" iyz="0.0"
+      izz="${0.4 * mass * radius ** 2.0}"
+    />
+  </xacro:macro>
+
+  <!-- Create a solid of given parameters. -->
+  <xacro:macro
+    name="solid_object"
+    params="
+      name
+      x:=0.0
+      y:=0.0
+      z:=0.0
+      roll:=0.0
+      pitch:=0.0
+      yaw:=0.0
+      mass:=0.0
+      material:='Grey'
+      visible:=true
+      *inertia
+      *geometry
+    "
+  >
+    <link name="${name}">
+      <xacro:if value="${mass > 0.0}">
+        <inertial>
+          <origin xyz="${x} ${y} ${z}" rpy="${roll} ${pitch} ${yaw}"/>
+          <mass value="${mass}"/>
+          <xacro:insert_block name="inertia"/>
+        </inertial>
+      </xacro:if>
+      <xacro:if value="${visible}">
+        <visual>
+          <origin xyz="${x} ${y} ${z}" rpy="${roll} ${pitch} ${yaw}"/>
+          <geometry>
+            <xacro:insert_block name="geometry"/>
+          </geometry>
+          <material name="${material}"/>
+        </visual>
+      </xacro:if>
+      <xacro:if value="${mass > 0.0}">
+        <collision>
+          <origin xyz="${x} ${y} ${z}" rpy="${roll} ${pitch} ${yaw}"/>
+          <geometry>
+            <xacro:insert_block name="geometry"/>
+          </geometry>
+        </collision>
+      </xacro:if>
+    </link>
+    <xacro:if value="$(arg simulation)">
+      <gazebo reference="${name}">
+        <material>Gazebo/${material}</material>
+      </gazebo>
+    </xacro:if>
+  </xacro:macro>
+
+  <!-- Create a solid cuboid block of given parameters. -->
+  <xacro:macro
+    name="solid_block"
+    params="
+      name
+      x:=0.0
+      y:=0.0
+      z:=0.0
+      roll:=0.0
+      pitch:=0.0
+      yaw:=0.0
+      size_x:=1.0
+      size_y:=1.0
+      size_z:=1.0
+      mass:=-1.0
+      material:='Grey'
+      visible:=true
+    "
+  >
+    <xacro:property name="mass_block" value="${mass if mass >= 0.0 else DENSITY * size_x * size_y * size_z}"/>
+
+    <xacro:solid_object
+      name="${name}"
+      x="${x}"
+      y="${y}"
+      z="${z}"
+      roll="${roll}"
+      pitch="${pitch}"
+      yaw="${yaw}"
+      mass="${mass_block}"
+      material="${material}"
+      visible="${visible}"
+    >
+      <xacro:inertia_block
+        mass="${mass_block}"
+        size_x="${size_x}"
+        size_y="${size_y}"
+        size_z="${size_z}"
+      />
+      <box size="${size_x} ${size_y} ${size_z}"/>
+    </xacro:solid_object>
+  </xacro:macro>
+
+  <!-- Create a solid cylinder of given parameters. -->
+  <xacro:macro
+    name="solid_cylinder"
+    params="
+      name
+      x:=0.0
+      y:=0.0
+      z:=0.0
+      roll:=0.0
+      pitch:=0.0
+      yaw:=0.0
+      radius:=0.5
+      length:=1.0
+      mass:=-1.0
+      material:='Grey'
+      visible:=true
+    "
+  >
+    <xacro:property name="mass_cylinder" value="${mass if mass >= 0.0 else DENSITY * length * pi * radius ** 2.0}"/>
+
+    <xacro:solid_object
+      name="${name}"
+      x="${x}"
+      y="${y}"
+      z="${z}"
+      roll="${roll}"
+      pitch="${pitch}"
+      yaw="${yaw}"
+      mass="${mass_cylinder}"
+      material="${material}"
+      visible="${visible}"
+    >
+      <xacro:inertia_cylinder
+        mass="${mass_cylinder}"
+        radius="${radius}"
+        length="${length}"
+      />
+      <cylinder radius="${radius}" length="${length}"/>
+    </xacro:solid_object>
+  </xacro:macro>
+
+  <!-- Create a solid sphere of given parameters. -->
+  <xacro:macro
+    name="solid_sphere"
+    params="
+      name
+      x:=0.0
+      y:=0.0
+      z:=0.0
+      roll:=0.0
+      pitch:=0.0
+      yaw:=0.0
+      radius:=0.5
+      mass:=-1.0
+      material:='Grey'
+      visible:=true
+    "
+  >
+    <xacro:property name="mass_sphere" value="${mass if mass >= 0.0 else DENSITY * 1.33 * pi * radius ** 2.0}"/>
+
+    <xacro:solid_object
+      name="${name}"
+      x="${x}"
+      y="${y}"
+      z="${z}"
+      roll="${roll}"
+      pitch="${pitch}"
+      yaw="${yaw}"
+      mass="${mass_sphere}"
+      material="${material}"
+      visible="${visible}"
+    >
+      <xacro:inertia_sphere
+        mass="${mass_sphere}"
+        radius="${radius}"
+      />
+      <sphere radius="${radius}"/>
+    </xacro:solid_object>
+  </xacro:macro>
+
+  <!--
+    Create a mesh of given parameters.
+
+    The filename parameter is a URL, therefore local files should be prepended by
+    "file://", for example:
+
+    <xacro:solid_mesh name="link_name" filename="file://$(find package_name)/urdf/mesh.stl">
+      ...
+    </xacro:solid_mesh>
+  -->
+  <xacro:macro
+    name="solid_mesh"
+    params="
+      name
+      filename
+      x:=0.0
+      y:=0.0
+      z:=0.0
+      roll:=0.0
+      pitch:=0.0
+      yaw:=0.0
+      mass:=0.0
+      material:='Grey'
+      visible:=true
+      *inertia
+    "
+  >
+    <xacro:solid_object
+      name="${name}"
+      x="${x}"
+      y="${y}"
+      z="${z}"
+      roll="${roll}"
+      pitch="${pitch}"
+      yaw="${yaw}"
+      mass="${mass}"
+      material="${material}"
+      visible="${visible}"
+    >
+      <xacro:insert_block name="inertia"/>
+      <mesh filename="${filename}"/>
+    </xacro:solid_object>
+  </xacro:macro>
+
+  <!-- Create a joint of given type between two links. -->
+  <xacro:macro
+    name="joint_of"
+    params="
+      type
+      name:=''
+      parent
+      child
+      x:=0.0
+      y:=0.0
+      z:=0.0
+      roll:=0.0
+      pitch:=0.0
+      yaw:=0.0
+      **extensions
+    "
+  >
+    <joint name="${name if name != '' else 'joint_%s_%s' % (parent, child)}" type="${type}">
+      <parent link="${parent}"/>
+      <child link="${child}"/>
+      <origin xyz="${x} ${y} ${z}" rpy="${roll} ${pitch} ${yaw}"/>
+      <xacro:insert_block name="extensions"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- Create a fixed joint between two links. -->
+  <xacro:macro
+    name="joint_fixed"
+    params="
+      name:=''
+      parent
+      child
+      x:=0.0
+      y:=0.0
+      z:=0.0
+      roll:=0.0
+      pitch:=0.0
+      yaw:=0.0
+    "
+  >
+    <xacro:joint_of type="fixed"
+      name="${name}"
+      parent="${parent}"
+      child="${child}"
+      x="${x}"
+      y="${y}"
+      z="${z}"
+      roll="${roll}"
+      pitch="${pitch}"
+      yaw="${yaw}"
+    >
+      <extensions/>
+    </xacro:joint_of>
+  </xacro:macro>
+
+  <!-- Create a continuous joint between two links. -->
+  <xacro:macro
+    name="joint_continuous"
+    params="
+      name:=''
+      parent
+      child
+      axis:='1 0 0'
+      x:=0.0
+      y:=0.0
+      z:=0.0
+      roll:=0.0
+      pitch:=0.0
+      yaw:=0.0
+    "
+  >
+    <xacro:joint_of type="continuous"
+      name="${name}"
+      parent="${parent}"
+      child="${child}"
+      x="${x}"
+      y="${y}"
+      z="${z}"
+      roll="${roll}"
+      pitch="${pitch}"
+      yaw="${yaw}"
+    >
+      <extensions>
+        <axis xyz="${axis}"/>
+      </extensions>
+    </xacro:joint_of>
+  </xacro:macro>
+
+  <!-- Create a joint effected by an actuator (real or simulated). -->
+  <xacro:macro
+    name="joint_actuated"
+    params="
+      name
+      parent
+      child
+      type:='revolute'
+      axis:='1 0 0'
+      effort:=10.0
+      velocity:=1.0
+      lower:=${-M_PI}
+      upper:=${M_PI}
+      x:=0.0
+      y:=0.0
+      z:=0.0
+      roll:=0.0
+      pitch:=0.0
+      yaw:=0.0
+    "
+  >
+    <xacro:joint_of type="${type}"
+      name="joint_${name}"
+      parent="${parent}"
+      child="${child}"
+      x="${x}"
+      y="${y}"
+      z="${z}"
+      roll="${roll}"
+      pitch="${pitch}"
+      yaw="${yaw}"
+    >
+      <extensions>
+        <axis xyz="${axis}"/>
+        <xacro:if value="${type != 'continuous'}">
+          <limit effort="${effort}" velocity="${velocity}" lower="${lower}" upper="${upper}"/>
+        </xacro:if>
+      </extensions>
+    </xacro:joint_of>
+
+    <transmission name="${name}_transmission">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="joint_${name}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="${name}_actuator">
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+  </xacro:macro>
+</robot>

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Copyright (C) 2020 CrossWing Inc. All rights reserved. -->
+<!-- Do not copy or distribute without authorization.       -->
+
+<!--
+  Model for an articulated UV light panel.
+
+  Author: Helio Perroni Filho
+-->
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!--
+    Make sure the line below is <include>'d before this file.
+
+    It's not <include>'d here to avoid re-including the same file multipe times.
+
+    <xacro:include filename="$(find crosswing_ros)/urdf/domain.xacro"/>
+  -->
+
+  <!-- Create an articulated UV light panel model instance. -->
+  <xacro:macro
+    name="uv_light"
+    params="
+      name
+      parent
+      x:=0.0
+      y:=0.0
+      z:=0.0
+      roll:=0.0
+      pitch:=0.0
+      yaw:=0.0
+    "
+  >
+    <xacro:solid_cylinder name="${name}_height"
+      material="Black"
+      x="-0.085"
+      pitch="${M_PI_2}"
+      radius="0.025"
+      length="0.24"
+    />
+
+    <xacro:solid_sphere name="${name}_roll"
+      material="Black"
+      radius="0.025"
+    />
+
+    <xacro:solid_block name="${name}"
+      material="Black"
+      x="0.125"
+      size_x="0.2"
+      size_y="0.4"
+      size_z="0.05"
+    />
+
+    <xacro:solid_block name="${name}_light"
+      material="White"
+      x="0.125"
+      z="0.016"
+      size_x="0.18"
+      size_y="0.38"
+      size_z="0.02"
+    />
+
+    <xacro:joint_actuated name="${name}_height"
+      parent="${parent}"
+      child="${name}_height"
+      type="prismatic"
+      axis="0 0 1"
+      effort="100.0"
+      lower="-0.18"
+      upper="0.15"
+      x="${x}"
+      y="${y}"
+      z="${z}"
+      roll="${roll}"
+      pitch="${pitch}"
+      yaw="${yaw}"
+    />
+
+    <xacro:joint_actuated name="${name}_roll"
+      parent="${name}_height"
+      child="${name}_roll"
+      effort="20.0"
+      x="0.035"
+    />
+
+    <xacro:joint_actuated name="${name}_pitch"
+      parent="${name}_roll"
+      child="${name}"
+      axis="0 1 0"
+      lower="${-M_PI_2}"
+      upper="${M_PI_2}"
+      effort="20.0"
+    />
+
+    <xacro:joint_fixed
+      parent="${name}"
+      child="${name}_light"
+    />
+
+    <!--
+      Ensure the ${name}_light link will exist in the converted SDF, otherwise it ends
+      folded inside the ${name} link and assigned the same color as it.
+    -->
+    <xacro:if value="$(arg simulation)">
+      <gazebo reference="joint_${name}_${name}_light">
+        <preserveFixedJoint>true</preserveFixedJoint>
+      </gazebo>
+    </xacro:if>
+  </xacro:macro>
+</robot>

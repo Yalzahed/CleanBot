@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Copyright (C) 2020 CrossWing Inc. All rights reserved. -->
+<!-- Do not copy or distribute without authorization.       -->
+
+<!--
+  Model for a RGBD camera.
+
+  Author: Helio Perroni Filho
+-->
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!--
+    Make sure the line below is <include>'d before this file.
+
+    It's not <include>'d here to avoid re-including the same file multipe times.
+
+    <xacro:include filename="$(find crosswing_ros)/urdf/domain.xacro"/>
+  -->
+
+  <!-- Create an RGBD camera link. -->
+  <xacro:macro
+    name="camera_rgbd"
+    params="
+      parent
+      name:=rgbd
+      x:=0.0
+      y:=0.0
+      z:=0.0
+      roll:=0.0
+      pitch:=0.0
+      yaw:=0.0
+      fps:=20
+      format:='R8G8B8'
+      horizontal_fov:=${90.0*DEG}
+      width:=640
+      height:=480
+      near:=0.01
+      far:=40.0
+    "
+  >
+    <xacro:property name="link_camera" value="camera_${name}"/>
+    <xacro:property name="link_optical" value="camera_${name}_optical"/>
+
+    <link name="${link_camera}"/>
+
+    <link name="${link_optical}"/>
+
+    <xacro:joint_fixed
+      parent="${parent}"
+      child="${link_camera}"
+      x="${x}"
+      y="${y}"
+      z="${z}"
+      roll="${roll}"
+      pitch="${pitch}"
+      yaw="${yaw}"
+    />
+
+    <xacro:joint_fixed
+      parent="${link_camera}"
+      child="${link_optical}"
+      roll="${-M_PI_2}"
+      yaw="${-M_PI_2}"
+    />
+
+    <xacro:if value="$(arg simulation)">
+      <gazebo reference="${link_camera}">
+        <sensor name="${name}_sensor_depth" type="depth">
+          <update_rate>${fps}</update_rate>
+          <camera>
+            <horizontal_fov>${horizontal_fov}</horizontal_fov>
+            <image>
+              <width>${width}</width>
+              <height>${height}</height>
+              <format>${format}</format>
+            </image>
+            <clip>
+              <near>${near}</near>
+              <far>${far}</far>
+            </clip>
+          </camera>
+          <plugin name="${name}_controller" filename="libgazebo_ros_openni_kinect.so">
+            <baseline>0.2</baseline>
+            <alwaysOn>true</alwaysOn>
+            <updateRate>${fps}</updateRate>
+            <cameraName>${link_camera}</cameraName>
+            <imageTopicName>color/image_raw</imageTopicName>
+            <cameraInfoTopicName>color/camera_info</cameraInfoTopicName>
+            <depthImageTopicName>depth/image_raw</depthImageTopicName>
+            <depthImageInfoTopicName>depth/camera_info</depthImageInfoTopicName>
+            <pointCloudTopicName>depth/points</pointCloudTopicName>
+            <frameName>${link_optical}</frameName>
+            <pointCloudCutoff>${near}</pointCloudCutoff>
+            <pointCloudCutoffMax>${far}</pointCloudCutoffMax>
+            <distortionK1>0.00000001</distortionK1>
+            <distortionK2>0.00000001</distortionK2>
+            <distortionK3>0.00000001</distortionK3>
+            <distortionT1>0.00000001</distortionT1>
+            <distortionT2>0.00000001</distortionT2>
+            <CxPrime>0</CxPrime>
+            <Cx>0</Cx>
+            <Cy>0</Cy>
+            <focalLength>0</focalLength>
+            <hackBaseline>0</hackBaseline>
+          </plugin>
+        </sensor>
+      </gazebo>
+    </xacro:if>
+  </xacro:macro>
+</robot>
